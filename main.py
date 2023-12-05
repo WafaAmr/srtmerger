@@ -4,6 +4,7 @@
 import datetime
 import codecs
 import re
+import os
 
 RED = '#FF003B'
 BLUE = '#00ADFF'
@@ -59,7 +60,7 @@ class Merger():
 
     def _put_subtitle_top(self, subtitle):
         """
-        Put the subtitle at the top of the screen 
+        Put the subtitle at the top of the screen
         """
         return '{\\an8}' + subtitle
 
@@ -162,10 +163,48 @@ class Merger():
             output.buffer.writelines(self.lines)
             print("'%s'" % (output.name), 'created successfully.')
 
+def find_file(directory , extension):
+    files = [file for file in os.listdir(directory) if file.endswith(extension)]
+    if len(files) == 1:
+        return files[0]
+    elif len(files) == 0:
+        print(f"Error: No {extension} file found in {directory}.")
+    else:
+        print(f"Error: Multiple {extension} files found. Please make sure only one exists.")
 
-# How to use?
-#
-# m = Merger(output_name="new.srt")
-# m.add('./test_srt/en.srt')
-# m.add('./test_srt/fa.srt', color="yellow", codec="cp1256", top=True)
-# m.merge()
+def find_and_merge(directory, extensions=["ar.srt", "zh.srt"]):
+    first_srt_file = find_file(directory, extensions[0])
+    second_srt_file = find_file(directory, extensions[1])
+    if first_srt_file and second_srt_file:
+        output_name = os.path.splitext(first_srt_file)[0] + "_zh.srt"
+        m = Merger(output_name=output_name)
+        os.chdir(directory)
+        m.add(second_srt_file, top=True)
+        m.add(first_srt_file, color='#FF9300')
+        m.merge()
+        processed = os.path.join(directory, 'bilingual.txt')
+        with open(processed, 'w') as file:
+            # You can add content to the file if needed
+            file.write("bilingual")
+        print(f"Merged {first_srt_file} and {second_srt_file} into {output_name}.")
+
+def bilingual(directory):
+    file_path = os.path.join(directory, 'bilingual.txt')
+    if os.path.exists(file_path):
+        print(f"'bilingual.txt' found in directory: {directory}")
+    else:
+        find_and_merge(directory)
+
+def process_subdirectories(root_path):
+    if not os.path.isdir(root_path):
+        print(f"{root_path} is not a valid directory.")
+        return
+    items = os.listdir(root_path)
+    for item in items:
+        item_path = os.path.join(root_path, item)
+        if os.path.isdir(item_path):
+            bilingual(item_path)
+
+
+if __name__ == "__main__":
+    process_subdirectories('<PATH>')
